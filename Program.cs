@@ -7,19 +7,19 @@ namespace Lesson
     {
         static void Main(string[] args)
         {
-            PathFinder fileLogWritter = new PathFinder(new FileLogWritter());
-            PathFinder consoleLogWritter = new PathFinder(new ConsoleLogWritter());
-            PathFinder secureFileLogWritter = new PathFinder(new SecureFileLogWritter());
-            PathFinder secureConsoleLogWritter = new PathFinder(new SecureConsoleLogWritter());
-            PathFinder consoleAndSecureFileLogWritter = new PathFinder(new ConsoleAndSecureFileLogWritter());
+            PathFinder fileLogWriter = new PathFinder(new FileLogWriter());
+            PathFinder consoleLogWriter = new PathFinder(new ConsoleLogWriter());
+            PathFinder secureFileLogWriter = new PathFinder(new SecureLogWriter(new FileLogWriter()));
+            PathFinder secureConsoleLogWriter = new PathFinder(new SecureLogWriter(new ConsoleLogWriter()));
+            PathFinder consoleAndSecureFileLogWriter = new PathFinder(new DoubleLogWriter(new ConsoleLogWriter(), new SecureLogWriter(new FileLogWriter())));
 
-            consoleLogWritter.Find("It works");
+            consoleLogWriter.Find("It works");
         }
     }
 
     interface ILogger
     {
-        public void WriteError(string message);
+        void WriteError(string message);
     }
 
     class PathFinder
@@ -42,51 +42,55 @@ namespace Lesson
         }
     }
 
-    class FileLogWritter : ILogger
+    class FileLogWriter : ILogger
     {
-        public virtual void WriteError(string message)
+        public void WriteError(string message)
         {
             File.WriteAllText("log.txt", message);
         }
     }
 
-    class ConsoleLogWritter : ILogger
+    class ConsoleLogWriter : ILogger
     {
-        public virtual void WriteError(string message)
+        public void WriteError(string message)
         {
             Console.WriteLine(message);
         }
     }
 
-    class SecureFileLogWritter : FileLogWritter
+    class SecureLogWriter : ILogger
     {
-        public override void WriteError(string message)
+        private ILogger _logger;
+
+        public SecureLogWriter(ILogger logger)
+        {
+            _logger = logger;
+        }
+
+        public void WriteError(string message)
         {
             if (DateTime.Now.DayOfWeek == DayOfWeek.Friday)
             {
-                base.WriteError(message);
+                _logger.WriteError(message);
             }
         }
     }
 
-    class SecureConsoleLogWritter : ConsoleLogWritter
+    class DoubleLogWriter : ILogger
     {
-        public override void WriteError(string message)
-        {
-            if (DateTime.Now.DayOfWeek == DayOfWeek.Friday)
-            {
-                base.WriteError(message);
-            }
-        }
-    }
+        private ILogger _firstLogger;
+        private ILogger _secondLogger;
 
-    class ConsoleAndSecureFileLogWritter : SecureFileLogWritter
-    {
-        public override void WriteError(string message)
+        public DoubleLogWriter(ILogger firstLogger, ILogger secondLogger)
         {
-            ConsoleLogWritter consoleLogWritter = new ConsoleLogWritter();
-            consoleLogWritter.WriteError(message);
-            base.WriteError(message);
+            _firstLogger = firstLogger;
+            _secondLogger = secondLogger;
+        }
+
+        public void WriteError(string message)
+        {
+            _firstLogger.WriteError(message);
+            _secondLogger.WriteError(message);
         }
     }
 }
